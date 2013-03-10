@@ -24,13 +24,15 @@ To Do:
        http://arduino.cc/forum/index.php/topic,95113.0.html
        
 
-PCB
+PCB design specs
 ICSP Pass through for Etherenet shield
-Status LED on edge
+Status LEDs
+Could have LCD screen with what's happening
 
 
-There are 5 strands of one wire temp sensors.  Sketch doesn't work if you splice them all togehter
-So this sketch will process each one separately, except the two strands under hot tub room/bathroom can be combined togheter
+OneWire Config
+There are 5 strands of one wire temp sensors between the floor joists; 60 sensor total.  Sketch doesn't work if you splice them all togehter onto 
+one input pin, I don't know why. So I put each strand on it's own input pin.
 
 There are 60 sensors (0-59), divided up into three main groups:
 0-16: under kitchen and dining room.  17 sensors
@@ -75,7 +77,6 @@ D0-D1 - Tx/Rx
 D2-D3 - status LEDs
 D4 - SS for SD card
 D5-D9 - 1Wire inputs
-
 D10  - SS for Etherenet
 D18-D19 - Tx2/Rx2
 D20-D21 - I2C
@@ -110,6 +111,8 @@ OneWire oneWire_A(2); // strand is under kitchen and dining room, IDs 0-16
 OneWire oneWire_B(3); // strand is under main room, IDs 17-25
 OneWire oneWire_C(4); // strand is under main room, ID's 26-40
 OneWire oneWire_D(5); // 2 strands (D & E) are in hot tub room and bathroom, IDs 41-59
+//srg OneWire oneWire_E(?); // future when you split out strands D&E 
+
 
 #define COSM_GRAPH "<img src=\"https://api.cosm.com/v2/feeds/4038/datastreams/5.png?width=800&height=300&colour=%23f15a24&duration=1week&title=Radiant%20Heat%20Temperature&stroke_size=2&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)\">"
 
