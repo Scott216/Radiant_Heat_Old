@@ -1,6 +1,8 @@
 /*
   Web Server that displays the radiant heat values
   http://64.17.119.193:46084/
+  http://64.17.119.193:46084/?status=0  - historical
+  http://64.17.119.193:46084/?status=1  - live
   http://192.168.46.84
   
   tables with colored cells 
@@ -16,13 +18,17 @@ To Do:
 - add icon that displays if heat is on or off.  Use img tag like you do with the graph
 - try removing the request temperature function and see what happens.  Does the temperature still update?
 - add code for three thermocouples
-- D4 will be needed for SD card, need to move to another I/O
 - Historical page doesn't work remotely, I think because it's losing the port info
   - Figure out how to use page names http://www.chipkin.com/arduino-ethernet-shield-a-better-webserver/
-  - https://github.com/sirleech/Webduino
+  - http://github.com/sirleech/Webduino
   - http://playground.arduino.cc/Code/WebServer
        http://arduino.cc/forum/index.php/topic,95113.0.html
+-Replace radio button with two different HTML Pages that link to each other with a button or hyperlink
+
        
+Good explanation of HTML Get with a checkbox
+http://startingelectronics.com/tutorials/arduino/ethernet-shield-web-server-tutorial/web-server-LED-control/
+
 
 PCB design specs
 ICSP Pass through for Etherenet shield
@@ -148,6 +154,7 @@ const uint8_t ThirdSectionOffset = 41;  // Sensors for 3rd section in crawlspace
 byte mac[] = { 0x46, 0x46, 0x46, 0x00, 0x00, 0x0A };
 IPAddress ip(192,168,46,84);  // Suntec
 // IPAddress ip(192,168,216,80);  // Crestview
+char httpPort[] = "46084";  // Port forward used
 
 // Initialize the Ethernet server library
 // with the IP address and port you want to use 
@@ -267,11 +274,12 @@ void loop()
   static uint32_t refreshTemps;
   int ntpTimeAry[6];
   char timebuf[30];  // char array to hold formatted time hour (military) & minutes
-
-  // once a minute update the time and temperature.  This takes 1.67 seconds to execute
+  bool localRequest; // true if user is on LAN, false if on WAN
+  
+  // once a minute update the time and temperature.  This takes a couple seconds to execute
   if(((long)(millis() - refreshTemps) > 0L) || (millis()< 10000L) )
   {
-    refreshTemps = millis() + 10000L; // reset update timer
+    refreshTemps = millis() + 60000L; // reset update timer
   
     // Get the time  
      if (getTime(ntpTimeAry))
@@ -334,10 +342,17 @@ void loop()
           client.println("<BODY>");
 
           // Source for code to that uses radio buttons - http://code.google.com/p/arduino-projects-hq/downloads/list
-        
-          client.print("<FORM action=\"http://");
-          client.print(Ethernet.localIP());
-          client.print("/\" >");
+      
+          if(localRequest)
+          { // User is on LAN
+            client.print("<FORM action=\"http://");
+            client.print(Ethernet.localIP());
+            client.print("/\" >");
+          }
+          else
+          { // user is on WAN
+            client.print("<FORM action=\"http://64.17.119.193:46084/\" >");       
+          }
           
           // This is used to keep the selected radio button set.  Without it the butotn would change it's default upon auto-refresh
           if (displayLiveData == true)
@@ -372,19 +387,29 @@ void loop()
           buffer = "";
         } 
         else if (c == '\r') 
-        {            
+        { //  \r means tje buffer has a complete line of textt
           if(buffer.indexOf("GET /?status=1")>=0)
           { displayLiveData = true; } 
           
           if(buffer.indexOf("GET /?status=0")>=0)
           { displayLiveData = false; } 
+          
+          // See if user is coming from WAN or LAN
+          if(buffer.indexOf("Host:")>=0)
+          {            
+            if(buffer.indexOf("46084")>=0)
+            { localRequest = false; } // User is coming from WAN using port 
+            else
+            { localRequest = true; } // User is local on LAN
+          }
         }
         else if (c != '\r') 
         {
           // you've gotten a character on the current line
           currentLineIsBlank = false;
         }
-      } // end client available
+        
+      } // end if client available
     } // end while client connected
     
     // give the web browser time to receive the data
